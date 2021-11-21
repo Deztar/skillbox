@@ -1,8 +1,8 @@
 <template>
 	<ul class="catalog__list">
 		<product-item
-			v-for="(product, index) in products"
-			:key="index"
+			v-for="product in products"
+			:key="product.id"
 			:product="product"
 		></product-item>
 	</ul>

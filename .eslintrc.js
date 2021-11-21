@@ -17,5 +17,6 @@ module.exports = {
 		'no-tabs': 0,
 		'indent': 0,
 		'object-shorthand': 1,
+		'comma-dangle': 0,
 	},
 };
