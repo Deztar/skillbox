@@ -12,14 +12,12 @@
 
 			<h1 class="content__title">Корзина</h1>
 			<span class="content__info">
-				{{ products.length }} товар{{
-					declOfNum(products.length, ['', 'а', 'ов'])
-				}}
+				{{ totalAmount }} товар{{ declOfNum(totalAmount, ['', 'а', 'ов']) }}
 			</span>
 		</div>
 
 		<section class="cart">
-			<form class="cart__form form" action="#" method="POST">
+			<form class="cart__form form" action="#" method="POST" @submit.prevent="">
 				<div class="cart__field">
 					<ul class="cart__list">
 						<cart-item
@@ -61,6 +59,7 @@ export default {
 		...mapGetters({
 			products: 'cartDetailProducts',
 			totalPrice: 'cartTotalPrice',
+			totalAmount: 'cartTotalProductAmount',
 		}),
 	},
 	filters: {

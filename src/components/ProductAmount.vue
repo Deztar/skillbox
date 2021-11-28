@@ -41,7 +41,12 @@ export default {
 	},
 	methods: {
 		updateAmount(value) {
-			this.$emit('amount-change', value);
+			if (value >= 0) {
+				this.$emit('amount-change', value);
+			} else {
+				if (Number.isNaN(value)) this.$emit('amount-change', 0);
+				this.$forceUpdate();
+			}
 		},
 	},
 };

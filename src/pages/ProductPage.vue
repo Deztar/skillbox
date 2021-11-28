@@ -1,5 +1,11 @@
 <template>
-	<main class="content container">
+	<main class="content container" v-if="productLoading">
+		Загрузка товара...
+	</main>
+	<main class="content container" v-else-if="!productData">
+		Не удалось загрузить товар
+	</main>
+	<main class="content container" v-else>
 		<div class="content__top">
 			<ul class="breadcrumbs">
 				<li class="breadcrumbs__item">
@@ -45,50 +51,25 @@
 						<fieldset class="form__block">
 							<legend class="form__legend">Цвет:</legend>
 							<ul class="colors">
-								<li class="colors__item">
+								<li
+									class="colors__item"
+									v-for="color in product.colors"
+									:key="color.id"
+								>
 									<label class="colors__label">
 										<input
 											class="colors__radio sr-only"
 											type="radio"
 											name="color-item"
-											value="blue"
-											checked=""
+											:value="color.id"
+											v-model="productColor"
 										/>
 										<span
 											class="colors__value"
-											style="background-color: #73b6ea"
+											:style="{ 'background-color': color.code }"
 										>
 										</span>
 									</label>
-								</li>
-								<li class="colors__item">
-									<label class="colors__label">
-										<input
-											class="colors__radio sr-only"
-											type="radio"
-											name="color-item"
-											value="yellow"
-										/>
-										<span
-											class="colors__value"
-											style="background-color: #ffbe15"
-										>
-										</span>
-									</label>
-								</li>
-								<li class="colors__item">
-									<label class="colors__label">
-										<input
-											class="colors__radio sr-only"
-											type="radio"
-											name="color-item"
-											value="gray" />
-										<span
-											class="colors__value"
-											style="background-color: #939393"
-										>
-										</span
-									></label>
 								</li>
 							</ul>
 						</fieldset>
@@ -135,12 +116,19 @@
 						</fieldset>
 
 						<div class="item__row">
-						<product-amount v-model.number="productAmount"></product-amount>
+							<product-amount v-model.number="productAmount"></product-amount>
 
-						<button class="button button--primery" type="submit">
-							В корзину
-						</button>
+							<button
+								class="button button--primery"
+								type="submit"
+								:disabled="productAddSending"
+							>
+								В корзину
+							</button>
 						</div>
+
+						<div v-show="productAdded">Товар добавлен в корзину</div>
+						<div v-show="productAddSending">Добавляем товар в корзину</div>
 					</form>
 				</div>
 			</div>
@@ -208,11 +196,12 @@
 </template>
 
 <script>
-import products from '@/data/products';
-import categories from '@/data/categories';
+import axios from 'axios';
+import { mapActions } from 'vuex';
 import gotoPage from '@/helpers/gotoPage';
 import numberFormat from '@/helpers/numberFormat';
 import ProductAmount from '@/components/ProductAmount.vue';
+import { API_BASE_URL } from '@/config/';
 
 export default {
 	components: {
@@ -221,30 +210,63 @@ export default {
 	data() {
 		return {
 			productAmount: 1,
+			productColor: null,
+			productData: null,
+
+			productLoading: false,
+			productLoadingFailed: false,
+
+			productAdded: false,
+			productAddSending: false,
 		};
 	},
 	computed: {
 		product() {
-			// Black magic? String to number.
-			return products.find((product) => product.id === +this.$route.params.id);
+			return { ...this.productData, image: this.productData.image.file.url };
 		},
 		category() {
-			return categories.find(
-				(category) => category.id === this.product.categoryId
-			);
+			return this.productData.category;
 		},
 	},
 	methods: {
+		...mapActions(['addProductToCart']),
 		gotoPage,
 		addToCart() {
-			this.$store.commit('addProductToCart', {
+			this.productAdded = false;
+			this.productAddSending = true;
+			this.addProductToCart({
 				productId: this.product.id,
 				amount: this.productAmount,
+			}).then(() => {
+				this.productAdded = true;
+				this.productAddSending = false;
 			});
+		},
+		loadProduct() {
+			this.productLoading = true;
+			this.productLoadingFailed = false;
+			axios
+				.get(`${API_BASE_URL}/api/products/${this.$route.params.id}`)
+				.then((response) => {
+					this.productData = response.data;
+					this.productColor = this.productData.colors[0]
+						? this.productData.colors[0].id
+						: null;
+				})
+				.catch((this.productLoadingFailed = true))
+				.then((this.productLoading = false));
 		},
 	},
 	filters: {
 		numberFormat,
+	},
+	watch: {
+		'$route.params.id': {
+			handler() {
+				this.loadProduct();
+			},
+			immediate: true,
+		},
 	},
 };
 </script>
