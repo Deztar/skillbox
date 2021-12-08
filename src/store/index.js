@@ -10,9 +10,17 @@ export default new Vuex.Store({
 		cartProducts: [],
 		userAccessKey: null,
 		cartProductsData: [],
+		orderInfo: null,
 		isLoading: false,
 	},
 	mutations: {
+		updateOrderInfo(state, orderInfo) {
+			state.orderInfo = orderInfo;
+		},
+		resetCart(state) {
+			state.cartProducts = [];
+			state.cartProductsData = [];
+		},
 		updateCartProductAmount(state, { productId, amount }) {
 			const item = state.cartProducts.find((a) => a.productId === productId);
 
@@ -57,8 +65,31 @@ export default new Vuex.Store({
 		cartTotalProductAmount(state) {
 			return state.cartProducts.reduce((acc, item) => item.amount + acc, 0);
 		},
+		orderProducts(state) {
+			if (!state.orderInfo) return [];
+			return state.orderInfo.basket.items.map((item) => (
+				{
+					...item,
+					amount: item.quantity,
+				}));
+		},
+		orderTotalProductAmount(state) {
+			if (!state.orderInfo) return 0;
+			return state.orderInfo.basket.items.reduce((acc, item) => item.quantity + acc, 0);
+		},
 	},
 	actions: {
+		loadOrderInfo(context, orderId) {
+			return axios
+				.get(`${API_BASE_URL}/api/orders/${orderId}`, {
+					params: {
+						userAccessKey: context.state.userAccessKey,
+					}
+				})
+				.then((response) => {
+					context.commit('updateOrderInfo', response.data);
+				});
+		},
 		loadCart(context) {
 			return axios
 				.get(`${API_BASE_URL}/api/baskets`, {
@@ -77,11 +108,11 @@ export default new Vuex.Store({
 		},
 		addProductToCart(context, { productId, amount }) {
 			context.commit('updateLoadingStatus', true);
-			return new Promise((resolve) => setTimeout(() => resolve(axios.post(`${API_BASE_URL}/api/baskets/products`, {
-				productId,
-				quantity: amount,
-			},
-				{ params: { userAccessKey: context.state.userAccessKey } })
+			return new Promise((resolve) => setTimeout(() => resolve(axios
+				.post(`${API_BASE_URL}/api/baskets/products`, {
+					productId,
+					quantity: amount,
+				}, { params: { userAccessKey: context.state.userAccessKey } })
 				.then((response) => {
 					context.commit('updateCartProductsData', response.data.items);
 					context.commit('syncCartProducts');
